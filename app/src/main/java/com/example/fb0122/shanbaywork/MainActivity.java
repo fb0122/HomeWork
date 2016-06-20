@@ -1,22 +1,38 @@
 package com.example.fb0122.shanbaywork;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.common.api.GoogleApiClient;
+
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,7 +40,7 @@ import java.util.regex.Pattern;
  * Created by fb0122 on 2016/6/19.
  */
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
 
     private final static String TAG = "MainActivity";
     private final static int GET_DATA = 1;
@@ -32,40 +48,60 @@ public class MainActivity extends AppCompatActivity {
 
     private InputStream inputStream;
     long startTime = System.currentTimeMillis();
-    static StringBuffer stringBuffer = new StringBuffer("");
+
     getDataHandler handler;
-    HashMap<String,String> map = new HashMap<String, String>();
+    ArrayList<ArrayList<String>> le_list = new ArrayList<>();
+
     ArrayList<String> unit_list = new ArrayList<String>();
-    ArrayList<String> lesson_list = new ArrayList<String>();
+    ArrayList<String[]> lesson_list = new ArrayList<>();
     ListView lv_artical;
     String line1;
+    String artical = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         context = getApplicationContext();
         initView();
+
+        Toolbar toolbar = (Toolbar)findViewById(R.id.toolbar);
+        toolbar.setTitle("首页");
+        toolbar.setTitleTextColor(getResources().getColor(android.R.color.white));
+        setSupportActionBar(toolbar);
+
         inputStream = getResources().openRawResource(R.raw.forth);
         long endTime = System.currentTimeMillis();
-        handler = new getDataHandler(Looper.myLooper(),inputStream);
+        handler = new getDataHandler(Looper.myLooper(), inputStream);
         Message msg = handler.obtainMessage();
         msg.what = GET_DATA;
-        handler.handleMessage(msg);
-        MyAdapter adapter = new MyAdapter(context,unit_list);
+        Log.e(TAG,"length = " + artical.length());
+        if (artical.length() == 0) {
+            handler.handleMessage(msg);
+        }
+        MyAdapter adapter = new MyAdapter(context, unit_list);
         lv_artical.setAdapter(adapter);
-        Log.e(TAG,"------use time-------" + (endTime - startTime));
-
+        lv_artical.setOnItemClickListener(this);
+        Log.e(TAG, "------use time-------" + (endTime - startTime));
     }
 
-    private void initView(){
-        lv_artical = (ListView)findViewById(R.id.lv_artical);
+    private void initView() {
+        lv_artical = (ListView) findViewById(R.id.lv_artical);
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        Log.e(TAG, "click Item = " + unit_list.get(position));
+        Intent intent = new Intent(MainActivity.this, AtyLesson.class);
+        intent.putExtra("unit",unit_list.get(position));
+        intent.putExtra("detail", le_list.get(position));
+        intent.putExtra("lesson",lesson_list.get(position));
+        startActivity(intent);
     }
 
     class getDataHandler extends Handler {
         InputStream inputStream;
-
+        StringBuffer stringBuffer = new StringBuffer("");
         public getDataHandler(Looper looper, InputStream inputStream) {
             super(looper);
             this.inputStream = inputStream;
@@ -73,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void handleMessage(Message msg) {
-            super.handleMessage(msg);
             switch (msg.what) {
                 case GET_DATA:
                     String unit_pattern = "\\bUnit(.*)\\d+";
@@ -94,30 +129,37 @@ public class MainActivity extends AppCompatActivity {
                     String line;
                     try {
                         while ((line = bufRead.readLine()) != null) {
-                            line1 = line.replace(" ","");
+                            line1 = line.replace(" ", "");
                             Matcher m = r.matcher(line1);
                             if (!line.equals("") && (line1.length() < 15) && (m.find())) {
                                 Matcher unit_m = unit_r.matcher(line);
-                                Matcher lesson_m = lesson_r.matcher(line);
-//                                while (unit_m.find() || lesson_m.find()) {
-                                    if (unit_m.find()) {
-                                        unit_list.add(unit_m.group(0));
-                                        Log.e(TAG, "unit_list is: " + unit_list);
 
-                                    }else if (lesson_m.find()){
-                                        lesson_list.add(lesson_m.group(0));
-                                        Log.e(TAG,"lesson_list is: " + lesson_list);
-                                    }
-//                                }
+                                if (unit_m.find()) {
+                                    unit_list.add(unit_m.group(0));
+                                }
                             }
                             stringBuffer.append(line);
                             stringBuffer.append("\n");
                         }
-                        for (int i = 0;i < unit_list.size(); i++){
-                            if (i < unit_list.size()-1) {
-                                map.put("Unit" + i, stringBuffer.toString().substring(stringBuffer.toString().indexOf(unit_list.get(i)), stringBuffer.toString().indexOf(unit_list.get(i + 1))));
-                            }else {
-                                map.put("Unit" + i,stringBuffer.toString().substring(stringBuffer.toString().indexOf(unit_list.get(i)), stringBuffer.toString().length()));
+
+                        artical = stringBuffer.toString();
+                        String[] str = artical.split("\\s*\\bUnit(.*)\\d+\\s*");
+
+
+                        Log.e(TAG,"str  = " + str.length);
+                        for (int i = 0; i < str.length; i++) {
+                            ArrayList<String> child_list = new ArrayList<>();
+                            Log.e(TAG,"-----------" + i + "-------------");
+                            String[] lesson_str = new String[]{""};
+                            child_list.clear();
+                            if (!str[i].equals("")){
+                                Matcher lesson_m = lesson_r.matcher(str[i]);
+                                while (lesson_m.find()){
+                                    child_list.add(lesson_m.group(0));
+                                }
+                                lesson_str = str[i].split("\\s*\\bLesson(.*)\\d+\\s*");
+                                lesson_list.add(lesson_str);
+                                le_list.add(child_list);
                             }
                         }
                     } catch (IOException e) {
@@ -127,4 +169,10 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
 }

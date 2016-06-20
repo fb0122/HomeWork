@@ -6,13 +6,13 @@
     android:background="@color/background"
     >
 
-    <include layout="@layout/toolbar"/>
-
-    <ListView
-        android:id="@+id/lv_lesson"
+    <TextView
+        android:id="@+id/tv_lesson"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        ></ListView>
+        android:layout_height="match_parent"
+        android:textSize="20dp"
+        android:textColor="@color/textColor"
+        android:padding="10dp"
+        />
 
 </LinearLayout>
