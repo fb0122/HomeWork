@@ -2,7 +2,10 @@ package com.example.fb0122.shanbaywork;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -10,151 +13,138 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.TextView;
 
-//开源:http://blog.csdn.net/andywuchuanlong/article/details/50208699
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+//开源:http://blog.csdn.net/nsw911439370/article/details/41542861
+//未实现两端对齐
+
 public class WeDoridAlignTextView extends TextView {
 
-    private boolean first = true;
+    private String content;
+    private int width;
+    private Paint paint;
+    private int xPadding;
+    private int yPadding;
+    private int textHeight;
+    private int xPaddingMin;
+    int count;
+    //记录每个字的二维数组
+    int[][] position;
 
-    public WeDoridAlignTextView(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
-        getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-            @Override
-            public boolean onPreDraw() {
-                initTextInfo();
-                return true;
-            }
-        });
+    public WeDoridAlignTextView(Context context) {
+        super(context);
+        init();
     }
 
     public WeDoridAlignTextView(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
+        super(context, attrs);
+        init();
     }
 
-    public WeDoridAlignTextView(Context context) {
-        this(context, null, 0);
+    public WeDoridAlignTextView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+        init();
     }
 
-    private float textSize;
-    private float textLineHeight;
-    private int top;
-    private int y;
-    private int lines;
-    private int bottom;
-    private int right;
-    private int left;
-    private int lineDrawWords;
-    private char[] textCharArray;
-    private float singleWordWidth;
-
-    private float lineSpacingExtra;
-
-    public void initTextInfo() {
-        textSize = getTextSize();
-        textLineHeight = getLineHeight();
-        left = 0;
-        right = getRight();
-        y = getTop();
-        // 要画的宽度
-        int drawTotalWidth = right - left;
-        String text = getText().toString();
-        if (!TextUtils.isEmpty(text) && first) {
-            textCharArray = text.toCharArray();
-            TextPaint mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-            mTextPaint.density = getResources().getDisplayMetrics().density;
-            mTextPaint.setTextSize(textSize);
-            // 一个单词的的宽度
-            singleWordWidth = mTextPaint.measureText("一") + lineSpacingExtra;
-            // 一行可以放多少个字符
-            lineDrawWords = (int) (drawTotalWidth / singleWordWidth);
-            int length = textCharArray.length;
-            lines = length / lineDrawWords;
-            if ((length % lineDrawWords) > 0) {
-                lines = lines + 1;
-            }
-            first = false;
-            ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) getLayoutParams();
-            int totalHeight = (int) (lines*textLineHeight+textLineHeight*2 + getPaddingBottom()+getPaddingTop()+layoutParams.bottomMargin+layoutParams.topMargin);
-            setHeight(totalHeight);
-        }
+    public void setText(String str) {
+        width = this.getWidth();
+        getPositions(str);
+        //重新画控件
+        this.invalidate();
     }
+    public void init() {
+
+        paint = new Paint();
+        paint.setColor(Color.parseColor("#888888"));
+        paint.setTypeface(Typeface.DEFAULT);
+        paint.setTextSize(dip2px(this.getContext(), 14f));
+        Paint.FontMetrics fm = paint.getFontMetrics();// 得到系统默认字体属性
+        textHeight = (int) (Math.ceil(fm.descent - fm.top) + 2);// 获得字体高度
+        //字间距
+        xPadding = dip2px(this.getContext(), 4f);
+        //行间距
+        yPadding = dip2px(this.getContext(), 10f);
+        //比较小的字间距（字母和数字应紧凑）
+        xPaddingMin = dip2px(this.getContext(), 2f);
+
+    }
+
 
     @Override
     protected void onDraw(Canvas canvas) {
-        bottom = getBottom();
-        int drawTotalLine = lines;
-
-        if(maxLine!=0&&drawTotalLine>maxLine){
-            drawTotalLine = maxLine;
-        }
-
-        for (int i = 0; i < drawTotalLine; i++) {
-            try {
-                int length = textCharArray.length;
-                int mLeft = left;
-                // 第i+1行开始的字符index
-                int startIndex = (i * 1) * lineDrawWords;
-                // 第i+1行结束的字符index
-                int endTextIndex = startIndex + lineDrawWords;
-                if (endTextIndex > length) {
-                    endTextIndex = length;
-                    y += textLineHeight;
-                } else {
-                    y += textLineHeight;
-                }
-                for (; startIndex < endTextIndex; startIndex++) {
-                    char c = textCharArray[startIndex];
-//                  if (c == ' ') {
-//                      c = '\u3000';
-//                  } else if (c < '\177') {
-//                      c = (char) (c + 65248);
-//                  }
-                    canvas.drawText(String.valueOf(c), mLeft, y, getPaint());
-                    mLeft += singleWordWidth;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        super.onDraw(canvas);
+        if (!TextUtils.isEmpty(content)) {
+            for (int i = 0; i < count; i++) {
+                canvas.drawText(String.valueOf(content.charAt(i)), position[i][0],position[i][1], paint);
             }
         }
     }
 
-    int maxLine;
 
-    public void setMaxLines(int max){
-        this.maxLine = max;
-    }
+    public void getPositions(String content) {
+        this.content = content;
+        char ch;
+        //输入点的 x的坐标
+        int x = 0;
+        //当前行数
+        int lineNum = 1;
+        count = content.length();
+        //初始化字体位置数组
+        position=new int[count][2];
+        for (int i = 0; i < count; i++) {
+            ch =content.charAt(i);
+            String str = String.valueOf(ch);
 
-    public void setLineSpacingExtra(int lineSpacingExtra){
-        this.lineSpacingExtra = lineSpacingExtra;
-    }
-
-    /**
-     * 判断是否为中文
-     * @return
-     */
-    public static boolean containChinese(String string){
-        boolean flag = false;
-        for (int i = 0; i < string.length(); i++) {
-            char c = string.charAt(i);
-            if ((c >= 0x4e00) && (c <= 0x9FA5)) {
-                flag = true;
+            //根据画笔获得每一个字符的显示的rect 就是包围框（获得字符宽度）
+            Rect rect = new Rect();
+            paint.getTextBounds(str, 0, 1, rect);
+            int strwidth = rect.width();
+            //对有些标点做些处理
+            if (str.equals("《") || str.equals("（")) {
+                strwidth += xPaddingMin * 2;
+            }
+            //当前行的宽度
+            float textWith = strwidth;
+            //没画字前预判看是否会出界
+            x += textWith;
+            //出界就换行
+            if (x > width) {
+                lineNum++;// 真实的行数加一
+                x = 0;
+            } else {
+                //回到预判前的位置
+                x -= textWith;
+            }
+            //记录每一个字的位置
+            position[i][0]=x;
+            position[i][1]=textHeight * lineNum + yPadding * (lineNum - 1);
+            //判断是否是数字还是字母 （数字和字母应该紧凑点）
+            //每次输入完毕 进入下一个输入位置准备就绪
+            if (isNumOrLetters(str)) {
+                x += textWith + xPaddingMin;
+            } else {
+                x += textWith + xPadding;
             }
         }
-        return flag;
+        //根据所画的内容设置控件的高度
+        this.setHeight((textHeight +yPadding) * lineNum);
     }
 
 
-    public static String ToDBC(String input) {
-        // 导致TextView异常换行的原因：安卓默认数字、字母不能为第一行以后每行的开头字符，因为数字、字母为半角字符
-        // 所以我们只需要将半角字符转换为全角字符即可
-        char c[] = input.toCharArray();
-        for (int i = 0; i < c.length; i++) {
-            if (c[i] == ' ') {
-                c[i] = '\u3000';
-            } else if (c[i] < '\177') {
-                c[i] = (char) (c[i] + 65248);
-            }
-        }
-        return new String(c);
+
+    //工具类：判断是否是字母或者数字
+    public boolean isNumOrLetters(String str)
+    {
+        String regEx="^[A-Za-z0-9_]+$";
+        Pattern p= Pattern.compile(regEx);
+        Matcher m=p.matcher(str);
+        return m.matches();
+    }
+    // 工具类：在代码中使用dp的方法（因为代码中直接用数字表示的是像素）
+    public static int dip2px(Context context, float dip) {
+        final float scale = context.getResources().getDisplayMetrics().density;
+        return (int) (dip * scale + 0.5f);
     }
 
 }

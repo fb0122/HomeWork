@@ -16,6 +16,5 @@
         android:layout_marginRight="16dp"
         android:background="@color/background"
         >
-
     </ListView>
 </RelativeLayout>

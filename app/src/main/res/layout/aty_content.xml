@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:custom = "http://schemas.android.com/apk/res-auto"
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
@@ -7,6 +8,29 @@
 
     <include layout="@layout/toolbar"/>
 
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
     <include layout="@layout/aty_artical"/>
+
+    <com.appyvet.rangebar.RangeBar
+        android:id="@+id/rangbar"
+        android:layout_width="match_parent"
+        android:layout_height="75dp"
+        custom:tickStart="0"
+        custom:tickEnd="5"
+        custom:tickInterval="1"
+        android:layout_gravity="bottom"
+        custom:connectingLineColor="@color/toolbarColor"
+        custom:tickColor="@color/toolbarColor"
+        custom:connectingLineWeight="2dp"
+        custom:selectorColor="@android:color/white"
+        custom:selectorSize="2dp"
+        custom:pinColor="@color/toolbarColor"
+        custom:tickHeight="2dp"
+        custom:pinMaxFont="15dp"
+        />
+    </FrameLayout>
 
 </LinearLayout>
