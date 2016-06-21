@@ -1,6 +1,7 @@
 package com.example.fb0122.shanbaywork;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,6 +11,10 @@ import android.support.annotation.IntegerRes;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.BackgroundColorSpan;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.TextView;
@@ -39,6 +44,9 @@ public class ArticalDetail extends AppCompatActivity {
     RangeBar rangeBar;
     private InputStream inputStream;
     HashMap<Integer,ArrayList<String>> map = new HashMap<>();
+    ListFactory<String> listFactory = new ListFactory<>(6);
+    String artical;
+    SpannableStringBuilder style ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,18 +67,22 @@ public class ArticalDetail extends AppCompatActivity {
         if (toolbar.getNavigationIcon() != null){
             toolbar.getNavigationIcon().setColorFilter(getResources().getColor(android.R.color.white), PorterDuff.Mode.SRC_ATOP);
         }
-        tv_content.setText(getIntent().getStringExtra("content").toString());
+        artical = getIntent().getStringExtra("content").toString();
+        tv_content.setText(artical);
 
+        style = new SpannableStringBuilder(artical);
         inputStream = getResources().openRawResource(R.raw.nce4_words);
         LevelWords levelWords = new LevelWords(Looper.myLooper(),inputStream);
         Message msg = levelWords.obtainMessage();
         msg.what = LEVEL_WORDS;
         levelWords.handleMessage(msg);
+        rangeBar.setSeekPinByIndex(0);
         //rangebar监听器
         rangeBar.setOnRangeBarChangeListener(new RangeBar.OnRangeBarChangeListener() {
             @Override
             public void onRangeChangeListener(RangeBar rangeBar, int leftPinIndex, int rightPinIndex, String leftPinValue, String rightPinValue) {
                 Log.e(TAG,"rightIndex: " + rightPinIndex + "; leftINdex: " + leftPinIndex);
+                highLight(rightPinIndex);
             }
         });
 
@@ -96,9 +108,8 @@ public class ArticalDetail extends AppCompatActivity {
 
     class LevelWords extends Handler{
 
-        ListFactory<String> listFactory = new ListFactory<>(6);
         private InputStream inputStream;
-        HashMap<Integer,ArrayList<String>> map = new HashMap<>();
+
         public LevelWords(Looper looper,InputStream inputStream){
             super(looper);
             this.inputStream = inputStream;
@@ -146,7 +157,7 @@ public class ArticalDetail extends AppCompatActivity {
                                 }
                             }
                         }
-                        Log.e(TAG,"map = " + map.get(0));
+
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -155,5 +166,36 @@ public class ArticalDetail extends AppCompatActivity {
             }
         }
     }
+
+    //高亮
+    private void highLight(int level){
+        long startTime = System.currentTimeMillis();
+        style.clearSpans();
+        ArrayList<String> words = new ArrayList<>();
+        String pattern = "[a-zA-Z]+";
+        Pattern r = Pattern.compile(pattern);
+        Matcher m = r.matcher(artical);
+        while (m.find()){
+            words.add(m.group(0));
+        }
+        Log.e(TAG,"words" + words);
+        HashMap<String,Integer> level_map = new HashMap<>();
+        for (int i = 0;i <= level;i++) {
+            ArrayList<String> list = map.get(i);
+            for (String s : list) {
+                level_map.put(s, 1);
+            }
+            for (String s1 : words) {
+                if (level_map.get(s1) != null) {
+                    Log.e(TAG,"" + s1 + "  start: " + artical.indexOf(s1) + "  end: " + artical.indexOf(s1.length()));
+                    style.setSpan(new BackgroundColorSpan(Color.YELLOW),artical.indexOf(s1),artical.indexOf(s1) + s1.length(),Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
+                    tv_content.setText(style);
+                    tv_content.invalidate();
+                }
+            }
+        }
+        Log.e(TAG,"---------use time----------" + (startTime - System.currentTimeMillis()));
+    }
+
 
 }

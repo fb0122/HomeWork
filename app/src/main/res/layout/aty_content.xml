@@ -6,7 +6,12 @@
     android:background="@color/background"
     >
 
-    <include layout="@layout/toolbar"/>
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/toolbarColor"
+        />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -18,9 +23,6 @@
         android:id="@+id/rangbar"
         android:layout_width="match_parent"
         android:layout_height="75dp"
-        custom:tickStart="0"
-        custom:tickEnd="5"
-        custom:tickInterval="1"
         android:layout_gravity="bottom"
         custom:connectingLineColor="@color/toolbarColor"
         custom:tickColor="@color/toolbarColor"
@@ -30,6 +32,7 @@
         custom:pinColor="@color/toolbarColor"
         custom:tickHeight="2dp"
         custom:pinMaxFont="15dp"
+        custom:rangeBar="false"
         />
     </FrameLayout>
 
