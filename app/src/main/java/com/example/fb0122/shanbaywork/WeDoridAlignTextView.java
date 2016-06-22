@@ -2,27 +2,34 @@ package com.example.fb0122.shanbaywork;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.text.TextPaint;
+import android.text.Layout;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.WindowManager;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import org.w3c.dom.Text;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//开源:http://blog.csdn.net/nsw911439370/article/details/41542861
-//未实现两端对齐
+//实现两端对齐,未实现使用此方法实现高亮
 
 public class WeDoridAlignTextView extends TextView {
+    private final static String TAG = "WeDoridAlignTextView";
 
     private String content;
-    private int width;
+    private static int width;
     private Paint paint;
     private int xPadding;
     private int yPadding;
@@ -31,34 +38,71 @@ public class WeDoridAlignTextView extends TextView {
     int count;
     //记录每个字的二维数组
     int[][] position;
+    private Context context;
 
     public WeDoridAlignTextView(Context context) {
         super(context);
+        this.context = context;
         init();
+        ViewTreeObserver vt = getViewTreeObserver();
+        vt.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                width = getWidth();
+                return true;
+            }
+        });
     }
 
     public WeDoridAlignTextView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
+        ViewTreeObserver vt = getViewTreeObserver();
+        vt.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                width = getWidth();
+                return true;
+            }
+        });
     }
 
     public WeDoridAlignTextView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init();
+        ViewTreeObserver vt = getViewTreeObserver();
+        vt.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                width = getWidth();
+                return true;
+            }
+        });
     }
 
     public void setText(String str) {
-        width = this.getWidth();
-        getPositions(str);
+        Log.e(TAG,"width = " + width);
+        if (width == 0){
+            width = 1028;
+        }
+        getPositions(str,width);
         //重新画控件
         this.invalidate();
     }
-    public void init() {
 
+    @Override
+    public void invalidate() {
+        super.invalidate();
+        Log.e(TAG,"invalidate");
+    }
+
+
+    public void init() {
         paint = new Paint();
-        paint.setColor(Color.parseColor("#888888"));
+        paint.setColor(getResources().getColor(R.color.textColor));
         paint.setTypeface(Typeface.DEFAULT);
-        paint.setTextSize(dip2px(this.getContext(), 14f));
+        paint.setTextSize(getTextSize());
+
         Paint.FontMetrics fm = paint.getFontMetrics();// 得到系统默认字体属性
         textHeight = (int) (Math.ceil(fm.descent - fm.top) + 2);// 获得字体高度
         //字间距
@@ -82,35 +126,41 @@ public class WeDoridAlignTextView extends TextView {
     }
 
 
-    public void getPositions(String content) {
+    public void getPositions(String content, int mwidth) {
+        Log.e(TAG,"mwidth" + mwidth);
         this.content = content;
         char ch;
         //输入点的 x的坐标
         int x = 0;
         //当前行数
         int lineNum = 1;
+        String[] content_str = content.split(" ");
+//        count = content.split(" ").length;/
         count = content.length();
         //初始化字体位置数组
         position=new int[count][2];
         for (int i = 0; i < count; i++) {
-            ch =content.charAt(i);
+//            String str =content_str[i];
+            ch = content.charAt(i);
             String str = String.valueOf(ch);
 
             //根据画笔获得每一个字符的显示的rect 就是包围框（获得字符宽度）
             Rect rect = new Rect();
-            paint.getTextBounds(str, 0, 1, rect);
+            paint.getTextBounds(str, 0, str.length(), rect);
             int strwidth = rect.width();
             //对有些标点做些处理
-            if (str.equals("《") || str.equals("（")) {
-                strwidth += xPaddingMin * 2;
-            }
+//            if (str.equals("《") || str.equals("（")) {
+//                strwidth += xPaddingMin * 2;
+//            }
             //当前行的宽度
             float textWith = strwidth;
             //没画字前预判看是否会出界
             x += textWith;
             //出界就换行
-            if (x > width) {
+            if (x > mwidth) {
                 lineNum++;// 真实的行数加一
+//                String c_str = str.substring(x-mwidth,(str.length()+(x-mwidth)));
+//                content_str[i+1] = c_str + " " + content_str[i + 1];
                 x = 0;
             } else {
                 //回到预判前的位置

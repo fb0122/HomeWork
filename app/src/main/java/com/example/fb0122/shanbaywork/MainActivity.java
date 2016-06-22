@@ -2,6 +2,7 @@ package com.example.fb0122.shanbaywork;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,11 +11,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 
+import com.bluejamesbond.text.DocumentView;
+import com.bluejamesbond.text.style.TextAlignment;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -75,14 +80,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         handler = new getDataHandler(Looper.myLooper(), inputStream);
         Message msg = handler.obtainMessage();
         msg.what = GET_DATA;
-        Log.e(TAG,"length = " + artical.length());
         if (artical.length() == 0) {
             handler.handleMessage(msg);
         }
         MyAdapter adapter = new MyAdapter(context, unit_list);
         lv_artical.setAdapter(adapter);
         lv_artical.setOnItemClickListener(this);
-        Log.e(TAG, "------use time-------" + (endTime - startTime));
+//        Log.e(TAG, "------use time-------" + (endTime - startTime));
     }
 
     private void initView() {
@@ -91,7 +95,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Log.e(TAG, "click Item = " + unit_list.get(position));
         Intent intent = new Intent(MainActivity.this, AtyLesson.class);
         intent.putExtra("unit",unit_list.get(position));
         intent.putExtra("detail", le_list.get(position));
@@ -149,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         Log.e(TAG,"str  = " + str.length);
                         for (int i = 0; i < str.length; i++) {
                             ArrayList<String> child_list = new ArrayList<>();
-                            Log.e(TAG,"-----------" + i + "-------------");
                             String[] lesson_str = new String[]{""};
                             child_list.clear();
                             if (!str[i].equals("")){

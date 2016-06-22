@@ -3,6 +3,8 @@ package com.example.fb0122.shanbaywork;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.Typeface;
+import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,14 +14,28 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.BackgroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewTreeObserver;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.appyvet.rangebar.RangeBar;
+import com.bluejamesbond.text.DocumentView;
+import com.bluejamesbond.text.style.JustifiedSpan;
+import com.bluejamesbond.text.style.LeftSpan;
+import com.bluejamesbond.text.style.TextAlignment;
+import com.bluejamesbond.text.util.ArticleBuilder;
+
+import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,7 +50,7 @@ import java.util.regex.Pattern;
 /**
  * Created by fb0122 on 2016/6/20.
  */
-public class ArticalDetail extends AppCompatActivity {
+public class ArticalDetail extends AppCompatActivity implements View.OnClickListener{
 
     private final static String TAG = "ArticalDetail";
     private static Context context;
@@ -47,16 +63,18 @@ public class ArticalDetail extends AppCompatActivity {
     ListFactory<String> listFactory = new ListFactory<>(6);
     String artical;
     SpannableStringBuilder style ;
+    ImageView openHightLight,closeHightLight;
+    int width;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.aty_content);
-        initView();
+
         context = getApplicationContext();
 
         long startTime =  System.currentTimeMillis();
-
+        initView();
         Toolbar toolbar = (Toolbar)findViewById(R.id.toolbar);
         toolbar.setTitle(getIntent().getStringExtra("lesson").toString());
         toolbar.setTitleTextColor(getResources().getColor(android.R.color.white));
@@ -69,7 +87,6 @@ public class ArticalDetail extends AppCompatActivity {
         }
         artical = getIntent().getStringExtra("content").toString();
         tv_content.setText(artical);
-
         style = new SpannableStringBuilder(artical);
         inputStream = getResources().openRawResource(R.raw.nce4_words);
         LevelWords levelWords = new LevelWords(Looper.myLooper(),inputStream);
@@ -81,19 +98,23 @@ public class ArticalDetail extends AppCompatActivity {
         rangeBar.setOnRangeBarChangeListener(new RangeBar.OnRangeBarChangeListener() {
             @Override
             public void onRangeChangeListener(RangeBar rangeBar, int leftPinIndex, int rightPinIndex, String leftPinValue, String rightPinValue) {
-                Log.e(TAG,"rightIndex: " + rightPinIndex + "; leftINdex: " + leftPinIndex);
                 highLight(rightPinIndex);
             }
         });
 
         long endTime = System.currentTimeMillis();
-        Log.e(TAG,"use time: " + "-------" + (endTime - startTime) + "-------");
+//        Log.e(TAG,"use time: " + "-------" + (endTime - startTime) + "-------");
 
     }
 
     private void initView(){
-        tv_content = (TextView)findViewById(R.id.tv_content);
+        tv_content = (TextView) findViewById(R.id.tv_content);
         rangeBar = (RangeBar)findViewById(R.id.rangbar);
+        openHightLight = (ImageView)findViewById(R.id.openHIghtLight);
+        closeHightLight = (ImageView)findViewById(R.id.closeHightLight);
+
+        openHightLight.setOnClickListener(this);
+        closeHightLight.setOnClickListener(this);
     }
 
     @Override
@@ -104,6 +125,20 @@ public class ArticalDetail extends AppCompatActivity {
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (openHightLight.getVisibility() == View.VISIBLE){
+            openHightLight.setVisibility(View.GONE);
+            closeHightLight.setVisibility(View.VISIBLE);
+            style.clearSpans();
+            tv_content.invalidate();
+        }else {
+            openHightLight.setVisibility(View.VISIBLE);
+            closeHightLight.setVisibility(View.GONE);
+            tv_content.invalidate();
+        }
     }
 
     class LevelWords extends Handler{
@@ -171,14 +206,15 @@ public class ArticalDetail extends AppCompatActivity {
     private void highLight(int level){
         long startTime = System.currentTimeMillis();
         style.clearSpans();
+        tv_content.invalidate();
+        String content = tv_content.getText().toString();
         ArrayList<String> words = new ArrayList<>();
         String pattern = "[a-zA-Z]+";
         Pattern r = Pattern.compile(pattern);
-        Matcher m = r.matcher(artical);
+        Matcher m = r.matcher(tv_content.getText().toString());
         while (m.find()){
             words.add(m.group(0));
         }
-        Log.e(TAG,"words" + words);
         HashMap<String,Integer> level_map = new HashMap<>();
         for (int i = 0;i <= level;i++) {
             ArrayList<String> list = map.get(i);
@@ -187,15 +223,14 @@ public class ArticalDetail extends AppCompatActivity {
             }
             for (String s1 : words) {
                 if (level_map.get(s1) != null) {
-                    Log.e(TAG,"" + s1 + "  start: " + artical.indexOf(s1) + "  end: " + artical.indexOf(s1.length()));
-                    style.setSpan(new BackgroundColorSpan(Color.YELLOW),artical.indexOf(s1),artical.indexOf(s1) + s1.length(),Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
+//                    tv_content.setText("");
+                    style.setSpan(new BackgroundColorSpan(Color.YELLOW),content.indexOf(s1),content.indexOf(s1) + s1.length(),Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
                     tv_content.setText(style);
                     tv_content.invalidate();
                 }
             }
         }
-        Log.e(TAG,"---------use time----------" + (startTime - System.currentTimeMillis()));
+//        Log.e(TAG,"---------use time----------" + (startTime - System.currentTimeMillis()));
     }
-
 
 }
