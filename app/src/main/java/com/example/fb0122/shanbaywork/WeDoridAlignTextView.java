@@ -20,6 +20,7 @@ import android.widget.TextView;
 
 import org.w3c.dom.Text;
 
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,14 +32,11 @@ public class WeDoridAlignTextView extends TextView {
     private String content;
     private static int width;
     private Paint paint;
-    private int xPadding;
-    private int yPadding;
-    private int textHeight;
-    private int xPaddingMin;
-    int count;
-    //记录每个字的二维数组
-    int[][] position;
     private Context context;
+    String[] texts;
+
+    int textHeight;
+    float yPadding;
 
     public WeDoridAlignTextView(Context context) {
         super(context);
@@ -85,15 +83,17 @@ public class WeDoridAlignTextView extends TextView {
         if (width == 0){
             width = 1028;
         }
-        getPositions(str,width);
+//        getPositions(str,width);
         //重新画控件
+//        content = dealContent(str);
+        content = dealContent(str);
+        texts = autoSplit(content, paint, (width - 10));
         this.invalidate();
     }
 
     @Override
     public void invalidate() {
         super.invalidate();
-        Log.e(TAG,"invalidate");
     }
 
 
@@ -103,85 +103,67 @@ public class WeDoridAlignTextView extends TextView {
         paint.setTypeface(Typeface.DEFAULT);
         paint.setTextSize(getTextSize());
 
-        Paint.FontMetrics fm = paint.getFontMetrics();// 得到系统默认字体属性
-        textHeight = (int) (Math.ceil(fm.descent - fm.top) + 2);// 获得字体高度
-        //字间距
-        xPadding = dip2px(this.getContext(), 4f);
-        //行间距
-        yPadding = dip2px(this.getContext(), 10f);
-        //比较小的字间距（字母和数字应紧凑）
-        xPaddingMin = dip2px(this.getContext(), 2f);
-
+        Paint.FontMetrics fm = paint.getFontMetrics();
+        textHeight = (int) (Math.ceil(fm.descent - fm.top) + 2);
+        yPadding = fm.leading;
     }
-
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (!TextUtils.isEmpty(content)) {
-            for (int i = 0; i < count; i++) {
-                canvas.drawText(String.valueOf(content.charAt(i)), position[i][0],position[i][1], paint);
+        float x = 5;
+        float y = textHeight;
+        String pattern = "\\n|\\r\\n";
+        Pattern r = Pattern.compile(pattern);
+        for(String text : texts) {
+            Log.e(TAG,"text = " + text);
+            if (text != null) {
+                    canvas.drawText(text, x, y, paint);
+                    y += textHeight + yPadding;//坐标以控件左上角为原点
+                }
             }
-        }
     }
 
-
-    public void getPositions(String content, int mwidth) {
-        Log.e(TAG,"mwidth" + mwidth);
-        this.content = content;
-        char ch;
-        //输入点的 x的坐标
-        int x = 0;
-        //当前行数
-        int lineNum = 1;
-        String[] content_str = content.split(" ");
-//        count = content.split(" ").length;/
-        count = content.length();
-        //初始化字体位置数组
-        position=new int[count][2];
-        for (int i = 0; i < count; i++) {
-//            String str =content_str[i];
-            ch = content.charAt(i);
-            String str = String.valueOf(ch);
-
-            //根据画笔获得每一个字符的显示的rect 就是包围框（获得字符宽度）
-            Rect rect = new Rect();
-            paint.getTextBounds(str, 0, str.length(), rect);
-            int strwidth = rect.width();
-            //对有些标点做些处理
-//            if (str.equals("《") || str.equals("（")) {
-//                strwidth += xPaddingMin * 2;
-//            }
-            //当前行的宽度
-            float textWith = strwidth;
-            //没画字前预判看是否会出界
-            x += textWith;
-            //出界就换行
-            if (x > mwidth) {
-                lineNum++;// 真实的行数加一
-//                String c_str = str.substring(x-mwidth,(str.length()+(x-mwidth)));
-//                content_str[i+1] = c_str + " " + content_str[i + 1];
-                x = 0;
-            } else {
-                //回到预判前的位置
-                x -= textWith;
-            }
-            //记录每一个字的位置
-            position[i][0]=x;
-            position[i][1]=textHeight * lineNum + yPadding * (lineNum - 1);
-            //判断是否是数字还是字母 （数字和字母应该紧凑点）
-            //每次输入完毕 进入下一个输入位置准备就绪
-            if (isNumOrLetters(str)) {
-                x += textWith + xPaddingMin;
-            } else {
-                x += textWith + xPadding;
-            }
+    private String[] autoSplit(String content, Paint p, float width) {
+        int length = 0;
+        float textWidth = 0;
+        if (content != null) {
+            length = content.length();
         }
-        //根据所画的内容设置控件的高度
-        this.setHeight((textHeight +yPadding) * lineNum);
+        if (p != null && content != null) {
+            textWidth = p.measureText(content);
+        }
+
+        if(textWidth <= width) {
+            return new String[]{content};
+        }
+
+        int start = 0, end = 1, i = 0;
+        int lines = (int) Math.ceil(textWidth / width); //计算行数
+        String[] lineTexts = new String[lines];
+        while(start < length) {
+            if(p.measureText(content, start, end) > width) { //文本宽度超出控件宽度时
+                lineTexts[i++] = content.substring(start, end);
+                start = end;
+            }
+            if(end == length) { //不足一行的文本
+                lineTexts[i] = (String) content.substring(start, end) + "\r\n";
+                break;
+            }
+            end += 1;
+        }
+        this.setHeight((int) ((textHeight + yPadding) * lineTexts.length));
+        return lineTexts;
     }
 
-
+    public String dealContent(String str){
+        String deal = "";
+        String pattern = "\\s{3,}";
+        Pattern r = Pattern.compile(pattern);
+        deal = str.replaceAll("\\s{4,}$","\r\n");
+//        Log.e(TAG,"deal_str = " + deal);
+        return deal;
+    }
 
     //工具类：判断是否是字母或者数字
     public boolean isNumOrLetters(String str)

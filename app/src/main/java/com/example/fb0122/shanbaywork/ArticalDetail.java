@@ -56,7 +56,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
     private static Context context;
     private final static int LEVEL_WORDS = 2;
 
-    TextView tv_content;
+    WeDoridAlignTextView tv_content;
     RangeBar rangeBar;
     private InputStream inputStream;
     HashMap<Integer,ArrayList<String>> map = new HashMap<>();
@@ -72,6 +72,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
         setContentView(R.layout.aty_content);
 
         context = getApplicationContext();
+
 
         long startTime =  System.currentTimeMillis();
         initView();
@@ -108,7 +109,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
     }
 
     private void initView(){
-        tv_content = (TextView) findViewById(R.id.tv_content);
+        tv_content = (WeDoridAlignTextView) findViewById(R.id.tv_content);
         rangeBar = (RangeBar)findViewById(R.id.rangbar);
         openHightLight = (ImageView)findViewById(R.id.openHIghtLight);
         closeHightLight = (ImageView)findViewById(R.id.closeHightLight);
