@@ -5,10 +5,12 @@
     android:layout_height="fill_parent"
     >
 
-    <com.example.fb0122.shanbaywork.WeDoridAlignTextView
+    <TextView
         android:id="@+id/tv_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textAlignment="inherit"
+        android:paddingLeft="10dp"
         android:lineSpacingExtra="4dp"
         />
 
