@@ -20,6 +20,7 @@ import android.widget.TextView;
 
 import org.w3c.dom.Text;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,6 +87,7 @@ public class WeDoridAlignTextView extends TextView {
 //        getPositions(str,width);
         //重新画控件
 //        content = dealContent(str);
+//        Log.e(TAG,"content = " + str.replace("\n","+"));
         content = dealContent(str);
         texts = autoSplit(content, paint, (width - 10));
         this.invalidate();
@@ -113,15 +115,13 @@ public class WeDoridAlignTextView extends TextView {
         super.onDraw(canvas);
         float x = 5;
         float y = textHeight;
-        String pattern = "\\n|\\r\\n";
-        Pattern r = Pattern.compile(pattern);
         for(String text : texts) {
-            Log.e(TAG,"text = " + text);
+            Log.e(TAG,"text = " + text.replace("\n","\r\n"));
             if (text != null) {
-                    canvas.drawText(text, x, y, paint);
-                    y += textHeight + yPadding;//坐标以控件左上角为原点
-                }
+                canvas.drawText(text, x, y, paint);
+                y += textHeight + yPadding;//坐标以控件左上角为原点
             }
+        }
     }
 
     private String[] autoSplit(String content, Paint p, float width) {
@@ -137,10 +137,16 @@ public class WeDoridAlignTextView extends TextView {
         if(textWidth <= width) {
             return new String[]{content};
         }
+        String pattern = "\\n|\\r\\n";
+        Pattern r = Pattern.compile(pattern);
+        Matcher m = r.matcher(content);
+        while (m.find()){
 
+        }
         int start = 0, end = 1, i = 0;
         int lines = (int) Math.ceil(textWidth / width); //计算行数
         String[] lineTexts = new String[lines];
+
         while(start < length) {
             if(p.measureText(content, start, end) > width) { //文本宽度超出控件宽度时
                 lineTexts[i++] = content.substring(start, end);

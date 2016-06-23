@@ -2,40 +2,25 @@ package com.example.fb0122.shanbaywork;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
-import android.graphics.Typeface;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.support.annotation.IntegerRes;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.Spannable;
-import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
-import android.text.style.RelativeSizeSpan;
-import android.text.style.StyleSpan;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.appyvet.rangebar.RangeBar;
-import com.bluejamesbond.text.DocumentView;
-import com.bluejamesbond.text.style.JustifiedSpan;
-import com.bluejamesbond.text.style.LeftSpan;
-import com.bluejamesbond.text.style.TextAlignment;
-import com.bluejamesbond.text.util.ArticleBuilder;
-
-import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -55,6 +40,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
     private final static String TAG = "ArticalDetail";
     private static Context context;
     private final static int LEVEL_WORDS = 2;
+    private final static int ALIGN_TEXT = 3;
 
     TextView tv_content;
     RangeBar rangeBar;
@@ -64,7 +50,6 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
     String artical;
     SpannableStringBuilder style ;
     ImageView openHightLight,closeHightLight;
-    int width;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +73,11 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
         }
         artical = getIntent().getStringExtra("content").toString();
         tv_content.setText(artical);
+        LevelWords levelWords1 = new LevelWords(Looper.myLooper());
+//        Message msg1 = levelWords1.obtainMessage();
+//        msg1.what = ALIGN_TEXT;
+//        levelWords1.handleMessage(msg1);
+        Log.e(TAG,"width = "+tv_content.getWidth());
         style = new SpannableStringBuilder(artical);
         inputStream = getResources().openRawResource(R.raw.nce4_words);
         LevelWords levelWords = new LevelWords(Looper.myLooper(),inputStream);
@@ -150,6 +140,9 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
             super(looper);
             this.inputStream = inputStream;
         }
+        public LevelWords(Looper looper){
+            super(looper);
+        }
 
         @Override
         public void handleMessage(Message msg) {
@@ -199,6 +192,9 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
                     }
 
                     break;
+                case ALIGN_TEXT:
+                    justify(tv_content,768);
+                    break;
             }
         }
     }
@@ -232,6 +228,67 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
             }
         }
 //        Log.e(TAG,"---------use time----------" + (startTime - System.currentTimeMillis()));
+    }
+
+
+    //通过处理文本实现文本内容两边对齐
+    public static void justify(TextView textView, float contentWidth) {
+        String text=textView.getText().toString();
+        String tempText;
+        String resultText = "";
+        Paint paint=textView.getPaint();
+
+        ArrayList<String> paraList = new ArrayList<String>();
+        paraList = paraBreak(text);
+        for(int i = 0; i<paraList.size(); i++) {
+            Log.e(TAG,"-----------" + i + "-------------");
+            ArrayList<String> lineList=lineBreak(paraList.get(i).toString(),paint,contentWidth);
+            tempText = TextUtils.join(" ", lineList).replaceFirst("\\s*", "");
+            resultText += tempText.replaceFirst("\\s*", "") + "\n";
+        }
+
+        textView.setText(resultText);
+    }
+    //分开每个段落
+    public static ArrayList<String> paraBreak(String text) {
+        ArrayList<String> paraList = new ArrayList<String>();
+        String[] paraArray = text.split("\\n+");
+        for(String para:paraArray) {
+            paraList.add(para);
+        }
+        return paraList;
+    }
+
+    //分开每一行，使每一行填入最多的单词数
+    private static ArrayList<String> lineBreak(String text, Paint paint, float contentWidth){
+        String[] wordArray=text.split("\\s+");
+        ArrayList<String> lineList = new ArrayList<>();
+        String myText="";
+        for(String word:wordArray) {
+                if (paint.measureText((myText + " " + word)) <= contentWidth) {
+                    myText = myText + " " + word;
+                } else {
+                    int index = word.length();
+                    char[] ch = word.toCharArray();
+                    String str = "";
+                    for (int i = 0;i<ch.length;i++){
+                        if (paint.measureText((myText + " " + str)) > contentWidth) {
+                            if (str.length() > 1 && str.length() > 0) {
+                                index = word.indexOf(str.charAt(str.length() - 1));
+                            }else if (str.length() < 1 && str.length() > 0) {
+                                index = word.indexOf(str.charAt(0));
+                            }
+                            break;
+                        }
+                        str = str + String.valueOf(ch[i]);
+                    }
+                    lineList.add(myText + " " + word.substring(0,index));
+
+                    myText = word.substring(index,word.length());
+                }
+        }
+        lineList.add(myText);
+        return lineList;
     }
 
 }
