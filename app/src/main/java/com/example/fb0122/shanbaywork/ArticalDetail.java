@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -32,6 +33,7 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /**
  * Created by fb0122 on 2016/6/20.
  */
@@ -42,7 +44,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
     private final static int LEVEL_WORDS = 2;
     private final static int ALIGN_TEXT = 3;
 
-    TextView tv_content;
+    AlignTextView tv_content;
     RangeBar rangeBar;
     private InputStream inputStream;
     HashMap<Integer,ArrayList<String>> map = new HashMap<>();
@@ -99,7 +101,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
     }
 
     private void initView(){
-        tv_content = (TextView) findViewById(R.id.tv_content);
+        tv_content = (AlignTextView) findViewById(R.id.tv_content);
         rangeBar = (RangeBar)findViewById(R.id.rangbar);
         openHightLight = (ImageView)findViewById(R.id.openHIghtLight);
         closeHightLight = (ImageView)findViewById(R.id.closeHightLight);
@@ -123,7 +125,6 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
         if (openHightLight.getVisibility() == View.VISIBLE){
             openHightLight.setVisibility(View.GONE);
             closeHightLight.setVisibility(View.VISIBLE);
-            style.clearSpans();
             tv_content.invalidate();
         }else {
             openHightLight.setVisibility(View.VISIBLE);
@@ -206,6 +207,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
         tv_content.invalidate();
         String content = tv_content.getText().toString();
         ArrayList<String> words = new ArrayList<>();
+        HashMap<String,Integer> hl_map = new HashMap<>();
         String pattern = "[a-zA-Z]+";
         Pattern r = Pattern.compile(pattern);
         Matcher m = r.matcher(tv_content.getText().toString());
@@ -220,12 +222,15 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
             }
             for (String s1 : words) {
                 if (level_map.get(s1) != null) {
-//                    tv_content.setText("");
+                    hl_map.put(s1,2);
+                    tv_content.setText("");
                     style.setSpan(new BackgroundColorSpan(Color.YELLOW),content.indexOf(s1),content.indexOf(s1) + s1.length(),Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
+//                    Log.e(TAG,"highLight words: " + style.toString());
                     tv_content.setText(style);
                     tv_content.invalidate();
                 }
             }
+//            tv_content.setText(artical,hl_map);
         }
 //        Log.e(TAG,"---------use time----------" + (startTime - System.currentTimeMillis()));
     }

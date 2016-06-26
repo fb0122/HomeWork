@@ -6,13 +6,11 @@
     android:paddingLeft="3dp"
     >
 
-    <TextView
+    <com.example.fb0122.shanbaywork.AlignTextView
         android:id="@+id/tv_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:lineSpacingExtra="4dp"
-        android:textAlignment="textStart"
-        android:paddingLeft="5dp"
+        android:padding="10dp"
         />
 
 </ScrollView>
