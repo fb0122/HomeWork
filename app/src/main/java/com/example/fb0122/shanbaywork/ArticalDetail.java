@@ -37,21 +37,21 @@ import java.util.regex.Pattern;
 /**
  * Created by fb0122 on 2016/6/20.
  */
-public class ArticalDetail extends AppCompatActivity implements View.OnClickListener{
+public class ArticalDetail extends AppCompatActivity{
 
     private final static String TAG = "ArticalDetail";
     private static Context context;
     private final static int LEVEL_WORDS = 2;
     private final static int ALIGN_TEXT = 3;
 
-    AlignTextView tv_content;
+    CBAlignTextView tv_content;
     RangeBar rangeBar;
     private InputStream inputStream;
     HashMap<Integer,ArrayList<String>> map = new HashMap<>();
     ListFactory<String> listFactory = new ListFactory<>(6);
     String artical;
     SpannableStringBuilder style ;
-    ImageView openHightLight,closeHightLight;
+    String content;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +59,6 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
         setContentView(R.layout.aty_content);
 
         context = getApplicationContext();
-
 
         long startTime =  System.currentTimeMillis();
         initView();
@@ -74,15 +73,13 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
             toolbar.getNavigationIcon().setColorFilter(getResources().getColor(android.R.color.white), PorterDuff.Mode.SRC_ATOP);
         }
         artical = getIntent().getStringExtra("content").toString();
+        tv_content.setPunctuationConvert(true);
         tv_content.setText(artical);
-        LevelWords levelWords1 = new LevelWords(Looper.myLooper());
-//        Message msg1 = levelWords1.obtainMessage();
-//        msg1.what = ALIGN_TEXT;
-//        levelWords1.handleMessage(msg1);
-        Log.e(TAG,"width = "+tv_content.getWidth());
-        style = new SpannableStringBuilder(artical);
+        content = tv_content.getRealText().toString();
+        style = new SpannableStringBuilder(content);
+//
         inputStream = getResources().openRawResource(R.raw.nce4_words);
-        LevelWords levelWords = new LevelWords(Looper.myLooper(),inputStream);
+        LevelWords levelWords = new LevelWords(Looper.myLooper(),inputStream,0);
         Message msg = levelWords.obtainMessage();
         msg.what = LEVEL_WORDS;
         levelWords.handleMessage(msg);
@@ -91,7 +88,10 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
         rangeBar.setOnRangeBarChangeListener(new RangeBar.OnRangeBarChangeListener() {
             @Override
             public void onRangeChangeListener(RangeBar rangeBar, int leftPinIndex, int rightPinIndex, String leftPinValue, String rightPinValue) {
-                highLight(rightPinIndex);
+                LevelWords levelWords1 = new LevelWords(Looper.myLooper(),null,Integer.parseInt(rightPinValue));
+                Message msg1 = levelWords1.obtainMessage();
+                msg1.what = ALIGN_TEXT;
+                levelWords1.handleMessage(msg1);
             }
         });
 
@@ -101,13 +101,8 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
     }
 
     private void initView(){
-        tv_content = (AlignTextView) findViewById(R.id.tv_content);
+        tv_content = (CBAlignTextView) findViewById(R.id.tv_content);
         rangeBar = (RangeBar)findViewById(R.id.rangbar);
-        openHightLight = (ImageView)findViewById(R.id.openHIghtLight);
-        closeHightLight = (ImageView)findViewById(R.id.closeHightLight);
-
-        openHightLight.setOnClickListener(this);
-        closeHightLight.setOnClickListener(this);
     }
 
     @Override
@@ -120,29 +115,15 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onClick(View v) {
-        if (openHightLight.getVisibility() == View.VISIBLE){
-            openHightLight.setVisibility(View.GONE);
-            closeHightLight.setVisibility(View.VISIBLE);
-            tv_content.invalidate();
-        }else {
-            openHightLight.setVisibility(View.VISIBLE);
-            closeHightLight.setVisibility(View.GONE);
-            tv_content.invalidate();
-        }
-    }
-
     class LevelWords extends Handler{
 
         private InputStream inputStream;
+        private int right;
 
-        public LevelWords(Looper looper,InputStream inputStream){
+        public LevelWords(Looper looper,InputStream inputStream,int right){
             super(looper);
             this.inputStream = inputStream;
-        }
-        public LevelWords(Looper looper){
-            super(looper);
+            this.right = right;
         }
 
         @Override
@@ -151,8 +132,6 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
             switch (msg.what){
                 case LEVEL_WORDS:
                     map = listFactory.getList();
-                    String level_pattern = "\\d+";
-                    Pattern level_r = Pattern.compile(level_pattern);
                     InputStreamReader reader = null;
                     try {
                         reader = new InputStreamReader(inputStream,"utf-8");
@@ -194,7 +173,7 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
 
                     break;
                 case ALIGN_TEXT:
-                    justify(tv_content,768);
+                    highLight(right);
                     break;
             }
         }
@@ -202,15 +181,16 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
 
     //高亮
     private void highLight(int level){
+
         long startTime = System.currentTimeMillis();
         style.clearSpans();
         tv_content.invalidate();
-        String content = tv_content.getText().toString();
+
         ArrayList<String> words = new ArrayList<>();
-        HashMap<String,Integer> hl_map = new HashMap<>();
+        ArrayList<String> hl_list = new ArrayList<>();
         String pattern = "[a-zA-Z]+";
         Pattern r = Pattern.compile(pattern);
-        Matcher m = r.matcher(tv_content.getText().toString());
+        Matcher m = r.matcher(tv_content.getRealText().toString());
         while (m.find()){
             words.add(m.group(0));
         }
@@ -222,78 +202,13 @@ public class ArticalDetail extends AppCompatActivity implements View.OnClickList
             }
             for (String s1 : words) {
                 if (level_map.get(s1) != null) {
-                    hl_map.put(s1,2);
-                    tv_content.setText("");
-                    style.setSpan(new BackgroundColorSpan(Color.YELLOW),content.indexOf(s1),content.indexOf(s1) + s1.length(),Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
-//                    Log.e(TAG,"highLight words: " + style.toString());
-                    tv_content.setText(style);
-                    tv_content.invalidate();
+                    hl_list.add(s1);
                 }
             }
-//            tv_content.setText(artical,hl_map);
+            tv_content.setChangeText(content,hl_list,TextView.BufferType.SPANNABLE);
+            hl_list.clear();
         }
 //        Log.e(TAG,"---------use time----------" + (startTime - System.currentTimeMillis()));
-    }
-
-
-    //通过处理文本实现文本内容两边对齐
-    public static void justify(TextView textView, float contentWidth) {
-        String text=textView.getText().toString();
-        String tempText;
-        String resultText = "";
-        Paint paint=textView.getPaint();
-
-        ArrayList<String> paraList = new ArrayList<String>();
-        paraList = paraBreak(text);
-        for(int i = 0; i<paraList.size(); i++) {
-            Log.e(TAG,"-----------" + i + "-------------");
-            ArrayList<String> lineList=lineBreak(paraList.get(i).toString(),paint,contentWidth);
-            tempText = TextUtils.join(" ", lineList).replaceFirst("\\s*", "");
-            resultText += tempText.replaceFirst("\\s*", "") + "\n";
-        }
-
-        textView.setText(resultText);
-    }
-    //分开每个段落
-    public static ArrayList<String> paraBreak(String text) {
-        ArrayList<String> paraList = new ArrayList<String>();
-        String[] paraArray = text.split("\\n+");
-        for(String para:paraArray) {
-            paraList.add(para);
-        }
-        return paraList;
-    }
-
-    //分开每一行，使每一行填入最多的单词数
-    private static ArrayList<String> lineBreak(String text, Paint paint, float contentWidth){
-        String[] wordArray=text.split("\\s+");
-        ArrayList<String> lineList = new ArrayList<>();
-        String myText="";
-        for(String word:wordArray) {
-                if (paint.measureText((myText + " " + word)) <= contentWidth) {
-                    myText = myText + " " + word;
-                } else {
-                    int index = word.length();
-                    char[] ch = word.toCharArray();
-                    String str = "";
-                    for (int i = 0;i<ch.length;i++){
-                        if (paint.measureText((myText + " " + str)) > contentWidth) {
-                            if (str.length() > 1 && str.length() > 0) {
-                                index = word.indexOf(str.charAt(str.length() - 1));
-                            }else if (str.length() < 1 && str.length() > 0) {
-                                index = word.indexOf(str.charAt(0));
-                            }
-                            break;
-                        }
-                        str = str + String.valueOf(ch[i]);
-                    }
-                    lineList.add(myText + " " + word.substring(0,index));
-
-                    myText = word.substring(index,word.length());
-                }
-        }
-        lineList.add(myText);
-        return lineList;
     }
 
 }
